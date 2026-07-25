@@ -14,6 +14,7 @@ import {
 } from '@/lib/seo';
 import { QueryProvider } from '@/providers/query-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { SocketProvider } from '@/components/providers/socket-provider';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({
@@ -263,10 +264,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AuthProvider>
               <AuthSyncProvider>
                 <SeasonProvider>
-                  <GlobalErrorProvider>
-                    {children}
-                    <Toaster />
-                  </GlobalErrorProvider>
+                  <SocketProvider>
+                    <GlobalErrorProvider>
+                      {children}
+                      <Toaster />
+                    </GlobalErrorProvider>
+                  </SocketProvider>
                 </SeasonProvider>
               </AuthSyncProvider>
             </AuthProvider>

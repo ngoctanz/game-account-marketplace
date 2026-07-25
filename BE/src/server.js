@@ -1,10 +1,12 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import http from "http";
 import { env } from "./config/environment.js";
 import { corsOptions } from "./config/cors.js";
 import { connectDatabase } from "./config/mongodb.js";
 import { initRedis } from "./config/redis.js";
+import { initSocket } from "./config/socket.js";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middlewares/error-handler.middleware.js";
 import { responseUtils } from "./utils/response.util.js";
@@ -23,6 +25,10 @@ import { apiLimiter } from "./middlewares/rate-limit.middleware.js";
 import { requestId, requestLogger } from "./middlewares/request-logger.middleware.js";
 
 const app = express();
+const httpServer = http.createServer(app);
+
+// Initialize Socket.io
+initSocket(httpServer);
 
 // Trust proxy (if behind nginx/load balancer)
 app.set("trust proxy", 1);
@@ -61,7 +67,7 @@ const startServer = async () => {
     // Initialize scheduled jobs
     initScheduler();
     
-    app.listen(env.APP_PORT, env.APP_HOST, () => {
+    httpServer.listen(env.APP_PORT, env.APP_HOST, () => {
       console.log(`🚀 Server running on http://${env.APP_HOST}:${env.APP_PORT}`);
     });
   } catch (error) {

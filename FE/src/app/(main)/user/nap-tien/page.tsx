@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DemoNotice } from '@/components/demo-notice';
+import { TopupForm } from './topup-form';
 
 export const metadata: Metadata = {
   title: 'Nạp Tiền Tài Khoản',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function TopupPage() {
-  return <DemoNotice feature="Nạp tiền" />;
+  return <TopupForm />;
 }
