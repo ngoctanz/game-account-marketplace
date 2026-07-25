@@ -113,6 +113,9 @@ accountSchema.index({ packageId: 1, status: 1 });
 accountSchema.index({ packageId: 1, status: 1, price: 1 });
 // Index for cleanup job (status + updatedAt)
 accountSchema.index({ status: 1, updatedAt: 1 });
+// Index for fast querying available accounts and sorting by newest
+accountSchema.index({ status: 1, createdAt: -1 });
+accountSchema.index({ status: 1, price: 1 });
 
 // Virtuals
 accountSchema.virtual("hasDiscount").get(function () {

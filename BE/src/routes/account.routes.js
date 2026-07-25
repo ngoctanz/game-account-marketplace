@@ -12,6 +12,7 @@ import {
   sensitiveOpLimiter,
   adminCredentialLimiter,
 } from "../middlewares/rate-limit.middleware.js";
+import { cacheMiddleware } from "../middlewares/cache.middleware.js";
 
 import { upload } from "../middlewares/upload.middleware.js";
 
@@ -25,8 +26,8 @@ router.get(
   accountController.getAllAccountsWithCredentials
 );
 
-// PUBLIC - List accounts (NO credentials)
-router.get("/", accountController.getAllAccounts);
+// PUBLIC - List accounts (NO credentials) - Cached for 120 seconds (2 minutes)
+router.get("/", cacheMiddleware(120), accountController.getAllAccounts);
 
 // PUBLIC - Get single account (NO credentials)
 router.get("/:id", optionalAuth, accountController.getAccountById);

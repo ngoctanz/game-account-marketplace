@@ -4,6 +4,7 @@ import cors from "cors";
 import { env } from "./config/environment.js";
 import { corsOptions } from "./config/cors.js";
 import { connectDatabase } from "./config/mongodb.js";
+import { initRedis } from "./config/redis.js";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middlewares/error-handler.middleware.js";
 import { responseUtils } from "./utils/response.util.js";
@@ -53,6 +54,9 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDatabase();
+    
+    // Initialize Redis connection
+    await initRedis();
     
     // Initialize scheduled jobs
     initScheduler();

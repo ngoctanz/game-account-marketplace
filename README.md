@@ -62,6 +62,28 @@ Các tên thương hiệu, hình ảnh, trò chơi hoặc nhãn hiệu xuất hi
 - Compound indexes, pagination, `insertMany`, `bulkWrite` và Cloudinary CDN.
 - Next.js ISR/cache, optimized images và responsive admin dashboard.
 
+## Hiệu năng (Stress Testing)
+
+Dự án đã được kiểm thử chịu tải thực tế bằng công cụ **Autocannon** với cấu hình **100 kết nối đồng thời** chạy liên tục trong 10 giây.
+
+### 1. Phương pháp & Công cụ
+- **Công cụ Test:** `autocannon` & `k6`.
+- **Mục tiêu:** Đo lường Throughput (Số request mỗi giây - RPS) và Latency (Độ trễ).
+
+### 2. Kết quả Backend (Express.js + MongoDB + Redis)
+- **Tối ưu:** Đã thêm Compound Index cho MongoDB và tích hợp Redis Caching qua Middleware (`120s`).
+- **Throughput:** Trung bình **14,700 RPS** (Đỉnh điểm: 21,500 RPS).
+- **Latency:** Trung bình **6ms**.
+- **Bảo mật Spam:** Express Rate Limiter (500 req/5m) hoạt động mượt mà, chặn thành công hơn 146,000 request spam (DDoS) chỉ trong 10 giây mà không gây treo (crash) Server.
+
+### 3. Kết quả Frontend (Next.js)
+- **Cơ chế:** Test trên giao diện Production (App Router - `SSG`).
+- **Throughput:** Trung bình **1,863 RPS**.
+- **Latency:** Trung bình **53ms**.
+- **Băng thông:** Next.js đáp ứng tĩnh (static) cực tốt, chuyển giao hơn 1.05 GB dữ liệu HTML chỉ trong 10 giây.
+
+> 📝 **Báo cáo chi tiết có thể xem tại:** [docs/stress_test_report.md](docs/stress_test_report.md).
+
 ## Những phần đã lược bỏ
 
 Để repository có thể public an toàn, bản demo đã xoá:
