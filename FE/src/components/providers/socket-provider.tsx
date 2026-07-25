@@ -23,18 +23,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
+
+    console.log(`[WebSocket] Đang thử kết nối tới: ${socketUrl}`);
 
     socket.on("connect", () => {
       console.log(`[WebSocket] Connected successfully with ID: ${socket.id}`);
+      // toast.success("Đã kết nối Socket Server!"); // Bỏ comment nếu muốn hiện thông báo
     });
 
-    socket.on("disconnect", () => {
-      console.log("[WebSocket] Disconnected from server");
+    socket.on("disconnect", (reason) => {
+      console.log(`[WebSocket] Disconnected from server. Lỗi: ${reason}`);
     });
 
     socket.on("connect_error", (error) => {
-      console.log("[WebSocket] Connection error:", error.message);
+      console.error(`[WebSocket] Lỗi kết nối tới ${socketUrl}:`, error.message);
+      // toast.error("Lỗi kết nối Socket Server", { description: error.message });
     });
 
     return () => {
