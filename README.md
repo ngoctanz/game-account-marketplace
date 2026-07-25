@@ -62,27 +62,20 @@ Các tên thương hiệu, hình ảnh, trò chơi hoặc nhãn hiệu xuất hi
 - Compound indexes, pagination, `insertMany`, `bulkWrite` và Cloudinary CDN.
 - Next.js ISR/cache, optimized images và responsive admin dashboard.
 
-## Hiệu năng (Stress Testing)
+## Hiệu năng & Tính toàn vẹn dữ liệu (Load & Correctness Testing)
 
-Dự án đã được kiểm thử chịu tải thực tế bằng công cụ **Autocannon** với cấu hình **100 kết nối đồng thời** chạy liên tục trong 10 giây.
+Dự án đã được kiểm định nghiêm ngặt về khả năng chịu tải và tính toàn vẹn dữ liệu (Data Integrity) trong môi trường truy cập đồng thời cao (High Concurrency) bằng công cụ **k6**.
 
-### 1. Phương pháp & Công cụ
-- **Công cụ Test:** `autocannon` & `k6`.
-- **Mục tiêu:** Đo lường Throughput (Số request mỗi giây - RPS) và Latency (Độ trễ).
+### 1. Xử lý Race Condition & Data Integrity (Correctness)
+Hệ thống sử dụng **MongoDB Atomic Updates** để ngăn chặn triệt để các lỗi nghiêm trọng thường gặp khi có nhiều giao dịch xảy ra cùng lúc:
+- **Ngăn chặn Overselling:** 50 Users cùng mua 1 tài khoản cùng lúc 👉 Chỉ 1 người thành công, 49 người bị từ chối với HTTP `409 Conflict`.
+- **Ngăn chặn Double-spending (Trừ âm tiền ví):** 1 User spam 150 request mua hàng liên tục vượt quá số dư ví 👉 Số lượng hóa đơn sinh ra khớp tuyệt đối với số dư, ví không bao giờ bị âm. 
 
-### 2. Kết quả Backend (Express.js + MongoDB + Redis)
-- **Tối ưu:** Đã thêm Compound Index cho MongoDB và tích hợp Redis Caching qua Middleware (`120s`).
-- **Throughput:** Trung bình **14,700 RPS** (Đỉnh điểm: 21,500 RPS).
-- **Latency:** Trung bình **6ms**.
-- **Bảo mật Spam:** Express Rate Limiter (500 req/5m) hoạt động mượt mà, chặn thành công hơn 146,000 request spam (DDoS) chỉ trong 10 giây mà không gây treo (crash) Server.
+### 2. Hiệu năng & Throughput
+- **API Purchase (Luồng mua hàng):** Xử lý mượt mà hàng trăm luồng giao dịch đồng thời (trừ tiền, gán account, tạo hóa đơn) với **p95 Latency ổn định**, không xảy ra lỗi kết nối hay timeout.
+- **Cơ chế chống Spam/DDoS:** Tích hợp Rate Limiter ở các endpoint nhạy cảm (Login, Purchase). K6 bắn spam 100 requests/s bị chặn chính xác với HTTP `429 Too Many Requests`, quá trình chặn không làm Memory Leak hay Crash Node.js process (0% HTTP 5xx errors).
 
-### 3. Kết quả Frontend (Next.js)
-- **Cơ chế:** Test trên giao diện Production (App Router - `SSG`).
-- **Throughput:** Trung bình **1,863 RPS**.
-- **Latency:** Trung bình **53ms**.
-- **Băng thông:** Next.js đáp ứng tĩnh (static) cực tốt, chuyển giao hơn 1.05 GB dữ liệu HTML chỉ trong 10 giây.
-
-> 📝 **Báo cáo chi tiết có thể xem tại:** [docs/stress_test_report.md](docs/stress_test_report.md).
+> 📝 **Báo cáo Kịch bản Load Test k6 chi tiết có thể xem tại:** [BE/k6-tests/README.md](BE/k6-tests/README.md).
 
 ## Những phần đã lược bỏ
 
