@@ -15,7 +15,8 @@ export interface Transaction {
 
 export const transactionService = {
   getUserTransactions: async (params?: any) => {
-    return api.get<Transaction[]>("/transactions", { params });
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return api.get<Transaction[]>(`/transactions${query}`);
   },
 
   getTransactionById: async (id: string) => {
