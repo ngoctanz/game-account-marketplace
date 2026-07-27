@@ -1,0 +1,8 @@
+node_modules
+.env*
+!.env.example
+npm-debug.log*
+README.md
+k6-tests
+scripts
+test-*-result.txt

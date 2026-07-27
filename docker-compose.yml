@@ -1,13 +1,28 @@
-version: '3.8'
-
 services:
+  backend:
+    build:
+      context: ./BE
+    env_file:
+      - ./BE/.env
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   redis:
     image: redis:alpine
-    container_name: shop-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
 volumes:
