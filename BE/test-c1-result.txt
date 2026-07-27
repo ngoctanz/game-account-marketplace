@@ -1,0 +1,36 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+     execution: local
+        script: k6-tests/test-c1-race-multiple-users.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 50 max VUs, 40s max duration (incl. graceful stop):
+              * race_condition: 1 iterations for each of 50 VUs (maxDuration: 10s, gracefulStop: 30s)
+
+
+     ✗ is status 200 or 409
+      ↳  0% — ✓ 0 / ✗ 50
+
+     checks.....................: 0.00%   ✓ 0           ✗ 50
+     data_received..............: 0 B     0 B/s
+     data_sent..................: 0 B     0 B/s
+     http_req_blocked...........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_connecting........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_duration..........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_failed............: 100.00% ✓ 50          ✗ 0 
+     http_req_receiving.........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_sending...........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_tls_handshaking...: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_req_waiting...........: avg=0s     min=0s     med=0s     max=0s     p(90)=0s     p(95)=0s    
+     http_reqs..................: 50      5764.377828/s
+     iteration_duration.........: avg=4.55ms min=1.35ms med=4.25ms max=6.94ms p(90)=5.82ms p(95)=6.89ms
+     iterations.................: 50      5764.377828/s
+
+
+running (00.0s), 00/50 VUs, 50 complete and 0 interrupted iterations
+race_condition ✓ [ 100% ] 50 VUs  00.0s/10s  50/50 iters, 1 per VU

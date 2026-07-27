@@ -6,12 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/auth-context';
 import { GlobalErrorProvider } from '@/contexts/global-error-context';
 import { SeasonProvider } from '@/contexts/season-context';
-import { 
-  SEO_CONFIG, 
-  organizationJsonLd, 
-  websiteJsonLd, 
-  localBusinessJsonLd 
-} from '@/lib/seo';
+import { SEO_CONFIG, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import { QueryProvider } from '@/providers/query-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { SocketProvider } from '@/components/providers/socket-provider';
@@ -41,16 +36,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  // Title Configuration - Optimized for Vietnamese SEO
   title: {
-    default: 'Shop Bán Nick Liên Quân Uy Tín - Mua Acc LQ Giá Rẻ, Chất Lượng | SHOPACVN',
-    template: '%s | SHOPACVN.COM - Bán Nick Liên Quân Uy Tín',
+    default: 'Shop Nick Liên Quân Uy Tín, Giá Rẻ | SHOPACVN',
+    template: '%s | SHOPACVN',
   },
-  
-  // Description - Target 130-155 chars
   description:
-    'SHOPACVN.COM - Shop bán nick Liên Quân uy tín #1 Việt Nam. Mua acc Liên Quân giá rẻ, chất lượng, full tướng skin. Giao dịch tự động 24/7, bảo hành 100%.',
-  
+    'Mua nick Liên Quân giá rẻ tại SHOPACVN. Tài khoản đa dạng, giao dịch tự động 24/7, nhận tài khoản nhanh và hỗ trợ sau mua.',
+
   // Keywords - Vietnamese Gaming Market Focus
   keywords: [
     // Primary Keywords - Liên Quân Mobile
@@ -81,7 +73,7 @@ export const metadata: Metadata = {
     'mua bán nick game online',
     'acc liên quân bảo hành',
   ],
-  
+
   // Authors and Publisher
   authors: [
     {
@@ -91,41 +83,40 @@ export const metadata: Metadata = {
   ],
   creator: SEO_CONFIG.brand.name,
   publisher: SEO_CONFIG.brand.name,
-  
+
   // Format Detection
   formatDetection: {
     email: true,
     address: false,
     telephone: true,
   },
-  
+
   // Metadata Base for relative URLs
   metadataBase: new URL(SEO_CONFIG.siteUrl),
-  
+
   // Alternate Languages - Vietnamese
   alternates: {
     canonical: '/',
     languages: {
       'vi-VN': '/',
-      'vi': '/',
+      vi: '/',
     },
   },
-  
+
   // Open Graph - Vietnamese Locale
   openGraph: {
     type: 'website',
     locale: 'vi_VN',
     url: '/',
     siteName: SEO_CONFIG.brand.name,
-    title: 'Shop Bán Nick Liên Quân Uy Tín #1 - Mua Acc LQ Giá Rẻ Chất Lượng',
+    title: 'Shop Nick Liên Quân Uy Tín, Giá Rẻ | SHOPACVN',
     description:
-      'SHOPACVN.COM - Shop bán nick Liên Quân Mobile uy tín nhất Việt Nam. Acc giá rẻ, chất lượng, full tướng full skin. Giao dịch tự động 24/7, bảo hành trọn đời.',
+      'Mua nick Liên Quân giá rẻ, tài khoản đa dạng, giao dịch tự động 24/7 và nhận tài khoản nhanh.',
     images: [
       {
-        //chưa có ảnh og
         url: '/images/banner_topup.jpg',
-        width: 1200,
-        height: 630,
+        width: 1024,
+        height: 572,
         alt: 'SHOPACVN.COM - Shop Bán Nick Liên Quân Uy Tín, Acc Giá Rẻ Chất Lượng',
         type: 'image/jpeg',
       },
@@ -138,18 +129,15 @@ export const metadata: Metadata = {
       },
     ],
   },
-  
+
   // Twitter Card
   twitter: {
     card: 'summary_large_image',
-    site: '@shopacvn',
-    creator: '@shopacvn',
-    title: 'Shop Bán Nick Liên Quân Uy Tín - Mua Acc LQ Giá Rẻ | SHOPACVN',
-    description:
-      'Mua nick Liên Quân uy tín, acc giá rẻ, chất lượng cao. Giao dịch tự động 24/7, bảo hành 100%. Shop acc game #1 Việt Nam.',
+    title: 'Shop Nick Liên Quân Uy Tín, Giá Rẻ | SHOPACVN',
+    description: 'Mua nick Liên Quân giá rẻ, tài khoản đa dạng và giao dịch tự động 24/7.',
     images: ['/images/banner_topup.jpg'],
   },
-  
+
   // Robots Configuration
   robots: {
     index: true,
@@ -164,43 +152,34 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  
-  // Verification - Add your actual codes
-  verification: {
-    google: 'your-google-verification-code', // TODO: Replace with actual code
-    // yandex: 'your-yandex-verification-code',
-    // bing: 'your-bing-verification-code',
-  },
-  
+
   // Category
   category: 'gaming',
-  
+
   // App Info
   applicationName: SEO_CONFIG.brand.name,
   referrer: 'origin-when-cross-origin',
-  
+
   // Icons
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },
       { url: '/images/logo.png', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [
-      { url: '/images/logo.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/images/logo.png', sizes: '180x180', type: 'image/png' }],
     shortcut: '/favicon.ico',
   },
-  
+
   // Apple Web App
   appleWebApp: {
     capable: true,
     title: SEO_CONFIG.brand.name,
     statusBarStyle: 'black-translucent',
   },
-  
+
   // Manifest
   manifest: '/manifest.webmanifest',
-  
+
   // Other meta tags
   other: {
     'mobile-web-app-capable': 'yes',
@@ -214,12 +193,8 @@ export const metadata: Metadata = {
 
 // Combined JSON-LD for global schema
 function GlobalJsonLd() {
-  const schemas = [
-    organizationJsonLd(),
-    websiteJsonLd(),
-    localBusinessJsonLd(),
-  ];
-  
+  const schemas = [organizationJsonLd(), websiteJsonLd()];
+
   return (
     <script
       id="global-jsonld"
@@ -238,16 +213,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Preconnect to external resources for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
+
         {/* DNS Prefetch for CDNs */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        
+
         {/* Alternate language */}
         <link rel="alternate" hrefLang="vi-VN" href={SEO_CONFIG.siteUrl} />
         <link rel="alternate" hrefLang="vi" href={SEO_CONFIG.siteUrl} />
         <link rel="alternate" hrefLang="x-default" href={SEO_CONFIG.siteUrl} />
-        
+
         {/* Global JSON-LD */}
         <GlobalJsonLd />
       </head>

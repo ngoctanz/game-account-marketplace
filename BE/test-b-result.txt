@@ -1,0 +1,50 @@
+
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+
+     execution: local
+        script: k6-tests/test-b-purchase.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 50 max VUs, 1m0s max duration (incl. graceful stop):
+              * purchase: 2 iterations for each of 50 VUs (maxDuration: 30s, gracefulStop: 30s)
+
+
+running (0m01.0s), 50/50 VUs, 0 complete and 0 interrupted iterations
+purchase   [   0% ] 50 VUs  01.0s/30s  000/100 iters, 2 per VU
+
+running (0m02.0s), 50/50 VUs, 43 complete and 0 interrupted iterations
+purchase   [  43% ] 50 VUs  02.0s/30s  043/100 iters, 2 per VU
+
+running (0m03.0s), 50/50 VUs, 50 complete and 0 interrupted iterations
+purchase   [  50% ] 50 VUs  03.0s/30s  050/100 iters, 2 per VU
+
+running (0m04.0s), 05/50 VUs, 95 complete and 0 interrupted iterations
+purchase   [  95% ] 50 VUs  04.0s/30s  095/100 iters, 2 per VU
+
+     ✗ is status 200
+      ↳  0% — ✓ 0 / ✗ 100
+
+     checks.....................: 0.00%   ✓ 0         ✗ 100 
+     data_received..............: 135 kB  31 kB/s
+     data_sent..................: 40 kB   9.1 kB/s
+     http_req_blocked...........: avg=194.09µs min=1.72µs  med=52.17µs max=696.96µs p(90)=572.26µs p(95)=639.49µs
+     http_req_connecting........: avg=132.08µs min=0s      med=30.7µs  max=577.2µs  p(90)=495µs    p(95)=542.78µs
+   ✗ http_req_duration..........: avg=1.65s    min=1.04s   med=1.84s   max=3.05s    p(90)=1.99s    p(95)=2.22s   
+   ✗ http_req_failed............: 100.00% ✓ 100       ✗ 0   
+     http_req_receiving.........: avg=90.93µs  min=39.57µs med=81.05µs max=187.63µs p(90)=144.92µs p(95)=168.35µs
+     http_req_sending...........: avg=53.45µs  min=7.91µs  med=37.47µs max=213.48µs p(90)=110.55µs p(95)=118.25µs
+     http_req_tls_handshaking...: avg=0s       min=0s      med=0s      max=0s       p(90)=0s       p(95)=0s      
+     http_req_waiting...........: avg=1.65s    min=1.04s   med=1.84s   max=3.05s    p(90)=1.99s    p(95)=2.22s   
+     http_reqs..................: 100     22.917749/s
+     iteration_duration.........: avg=1.65s    min=1.04s   med=1.84s   max=3.05s    p(90)=1.99s    p(95)=2.22s   
+     iterations.................: 100     22.917749/s
+     vus........................: 5       min=5       max=50
+     vus_max....................: 50      min=50      max=50
+
+
+running (0m04.4s), 00/50 VUs, 100 complete and 0 interrupted iterations
+purchase ✓ [ 100% ] 50 VUs  04.4s/30s  100/100 iters, 2 per VU

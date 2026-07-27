@@ -9,8 +9,6 @@ export const SEO_CONFIG = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://shopacvn.com',
   locale: 'vi_VN',
   language: 'vi',
-  twitterHandle: '@shopacvn',
-  
   // Brand info
   brand: {
     name: 'SHOPACVN.COM',
@@ -19,14 +17,14 @@ export const SEO_CONFIG = {
     email: 'demo@example.com',
     address: 'Việt Nam',
   },
-  
+
   // Social profiles
   social: {
     facebook: '',
     tiktok: '',
     zalo: '',
   },
-  
+
   // Default images
   images: {
     logo: '/images/logo.png',
@@ -61,7 +59,7 @@ export const SEO_KEYWORDS = {
     'shop bán acc 24/7',
     'mua nick liên quân auto',
   ],
-  all: function() {
+  all: function () {
     return [...this.primary, ...this.secondary];
   },
 };
@@ -72,14 +70,14 @@ export const SEO_KEYWORDS = {
  */
 export function buildTitle(pageTitle: string, includeBrand = true): string {
   if (!includeBrand) return pageTitle;
-  
+
   const brandSuffix = ' | SHOPACVN.COM';
   const maxLength = 60;
-  
+
   if (pageTitle.length + brandSuffix.length <= maxLength) {
     return `${pageTitle}${brandSuffix}`;
   }
-  
+
   // Truncate page title to fit
   const availableLength = maxLength - brandSuffix.length - 3;
   return `${pageTitle.substring(0, availableLength)}...${brandSuffix}`;
@@ -97,32 +95,32 @@ export function buildDescription(template: {
   customText?: string;
 }): string {
   const { productName, gameName = 'Liên Quân Mobile', price, features, customText } = template;
-  
+
   if (customText) {
     return customText.length > 155 ? customText.substring(0, 152) + '...' : customText;
   }
-  
+
   let description = '';
-  
+
   if (productName) {
     description = `${productName} - `;
   }
-  
+
   if (price) {
     description += `Giá ${price.toLocaleString('vi-VN')}đ. `;
   }
-  
+
   if (features && features.length > 0) {
     description += features.slice(0, 3).join(', ') + '. ';
   }
-  
+
   description += `Mua nick ${gameName} uy tín, giá rẻ. Giao dịch tự động 24/7, bảo hành 100%.`;
-  
+
   // Ensure length is within bounds
   if (description.length > 155) {
     description = description.substring(0, 152) + '...';
   }
-  
+
   return description;
 }
 
@@ -139,6 +137,8 @@ export function buildCanonicalUrl(path: string): string {
  * Organization JSON-LD Schema
  */
 export function organizationJsonLd() {
+  const sameAs = Object.values(SEO_CONFIG.social).filter(Boolean);
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -152,18 +152,7 @@ export function organizationJsonLd() {
       height: 512,
     },
     description: `${SEO_CONFIG.brand.slogan}. Chuyên bán nick Liên Quân Mobile uy tín, giá rẻ, acc chất lượng, giao dịch tự động 24/7.`,
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: SEO_CONFIG.brand.phone,
-      contactType: 'customer service',
-      availableLanguage: ['Vietnamese'],
-      areaServed: 'VN',
-    },
-    sameAs: [
-      SEO_CONFIG.social.facebook,
-      SEO_CONFIG.social.tiktok,
-      SEO_CONFIG.social.zalo,
-    ],
+    ...(sameAs.length > 0 && { sameAs }),
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'VN',
@@ -172,7 +161,7 @@ export function organizationJsonLd() {
 }
 
 /**
- * Website JSON-LD Schema with SearchAction
+ * Website JSON-LD Schema
  */
 export function websiteJsonLd() {
   return {
@@ -185,14 +174,6 @@ export function websiteJsonLd() {
     inLanguage: 'vi-VN',
     publisher: {
       '@id': `${SEO_CONFIG.siteUrl}/#organization`,
-    },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SEO_CONFIG.siteUrl}/search?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
     },
   };
 }
@@ -234,7 +215,7 @@ export function productJsonLd(product: {
     '@id': `${SEO_CONFIG.siteUrl}/product/${id}`,
     name: `${name} - Nick ${gameName}`,
     description: description,
-    image: images.map(img => img.startsWith('http') ? img : `${SEO_CONFIG.siteUrl}${img}`),
+    image: images.map((img) => (img.startsWith('http') ? img : `${SEO_CONFIG.siteUrl}${img}`)),
     sku: sku || id,
     brand: {
       '@type': 'Brand',
@@ -327,7 +308,7 @@ export function faqJsonLd(items: Array<{ question: string; answer: string }>) {
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: items.map(item => ({
+    mainEntity: items.map((item) => ({
       '@type': 'Question',
       name: item.question,
       acceptedAnswer: {
@@ -341,13 +322,15 @@ export function faqJsonLd(items: Array<{ question: string; answer: string }>) {
 /**
  * ItemList JSON-LD Schema for category/list pages
  */
-export function itemListJsonLd(items: Array<{
-  id: string;
-  name: string;
-  url: string;
-  image?: string;
-  price?: number;
-}>) {
+export function itemListJsonLd(
+  items: Array<{
+    id: string;
+    name: string;
+    url: string;
+    image?: string;
+    price?: number;
+  }>
+) {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -361,11 +344,13 @@ export function itemListJsonLd(items: Array<{
         name: item.name,
         url: item.url.startsWith('http') ? item.url : `${SEO_CONFIG.siteUrl}${item.url}`,
         image: item.image,
-        offers: item.price ? {
-          '@type': 'Offer',
-          priceCurrency: 'VND',
-          price: item.price,
-        } : undefined,
+        offers: item.price
+          ? {
+              '@type': 'Offer',
+              priceCurrency: 'VND',
+              price: item.price,
+            }
+          : undefined,
       },
     })),
   };
@@ -380,7 +365,8 @@ export function localBusinessJsonLd() {
     '@type': 'Store',
     '@id': `${SEO_CONFIG.siteUrl}/#store`,
     name: SEO_CONFIG.brand.name,
-    description: 'Shop bán nick Liên Quân Mobile uy tín, acc giá rẻ, chất lượng cao, giao dịch tự động 24/7, bảo hành trọn đời.',
+    description:
+      'Shop bán nick Liên Quân Mobile uy tín, acc giá rẻ, chất lượng cao, giao dịch tự động 24/7, bảo hành trọn đời.',
     url: SEO_CONFIG.siteUrl,
     telephone: SEO_CONFIG.brand.phone,
     priceRange: '₫₫',
@@ -396,10 +382,7 @@ export function localBusinessJsonLd() {
       '@type': 'PostalAddress',
       addressCountry: 'VN',
     },
-    sameAs: [
-      SEO_CONFIG.social.facebook,
-      SEO_CONFIG.social.tiktok,
-    ],
+    sameAs: [SEO_CONFIG.social.facebook, SEO_CONFIG.social.tiktok],
   };
 }
 
@@ -408,7 +391,7 @@ export function localBusinessJsonLd() {
  */
 export function generateJsonLdScripts(schemas: object[]): string {
   return schemas
-    .map(schema => `<script type="application/ld+json">${JSON.stringify(schema)}</script>`)
+    .map((schema) => `<script type="application/ld+json">${JSON.stringify(schema)}</script>`)
     .join('\n');
 }
 
@@ -418,18 +401,22 @@ export function generateJsonLdScripts(schemas: object[]): string {
 export const DEFAULT_PRODUCT_FAQ = [
   {
     question: 'Mua nick Liên Quân tại SHOPACVN có uy tín không?',
-    answer: 'SHOPACVN.COM cam kết bảo hành 100% tài khoản. Chúng tôi hỗ trợ đổi thông tin, bảo mật tài khoản và hoàn tiền nếu có vấn đề.',
+    answer:
+      'SHOPACVN.COM cam kết bảo hành 100% tài khoản. Chúng tôi hỗ trợ đổi thông tin, bảo mật tài khoản và hoàn tiền nếu có vấn đề.',
   },
   {
     question: 'Thời gian giao nick Liên Quân là bao lâu?',
-    answer: 'Giao dịch tự động 24/7, bạn nhận được tài khoản ngay lập tức sau khi thanh toán thành công.',
+    answer:
+      'Giao dịch tự động 24/7, bạn nhận được tài khoản ngay lập tức sau khi thanh toán thành công.',
   },
   {
     question: 'Có được bảo hành khi mua acc Liên Quân không?',
-    answer: 'Có, tất cả tài khoản đều được bảo hành 100%. Chúng tôi hỗ trợ đổi mật khẩu, email và bảo mật tài khoản.',
+    answer:
+      'Có, tất cả tài khoản đều được bảo hành 100%. Chúng tôi hỗ trợ đổi mật khẩu, email và bảo mật tài khoản.',
   },
   {
     question: 'Thanh toán mua nick Liên Quân bằng cách nào?',
-    answer: 'Bạn có thể thanh toán qua chuyển khoản ngân hàng, ví điện tử (MoMo, ZaloPay) hoặc nạp tiền vào tài khoản.',
+    answer:
+      'Bạn có thể thanh toán qua chuyển khoản ngân hàng, ví điện tử (MoMo, ZaloPay) hoặc nạp tiền vào tài khoản.',
   },
 ];
