@@ -54,8 +54,8 @@ Các tên thương hiệu, hình ảnh, trò chơi hoặc nhãn hiệu xuất hi
 
 ### Kỹ thuật nổi bật
 
-- Conditional atomic updates chống bán trùng khi có request đồng thời.
-- Compensating rollback phục hồi inventory và số dư khi purchase flow thất bại.
+- MongoDB transactions và conditional atomic updates chống bán trùng, trừ âm ví.
+- Inventory, số dư, hóa đơn và transaction log cùng commit hoặc rollback.
 - JWT access/refresh token, HTTP-only cookie, token revocation và RBAC.
 - Bcrypt, Joi validation, Helmet, rate limiting, sanitization và audit logging.
 - Mongoose field projection giới hạn truy cập credential.
@@ -67,7 +67,7 @@ Các tên thương hiệu, hình ảnh, trò chơi hoặc nhãn hiệu xuất hi
 Dự án đã được kiểm định nghiêm ngặt về khả năng chịu tải và tính toàn vẹn dữ liệu (Data Integrity) trong môi trường truy cập đồng thời cao (High Concurrency) bằng công cụ **k6**.
 
 ### 1. Xử lý Race Condition & Data Integrity (Correctness)
-Hệ thống sử dụng **MongoDB Atomic Updates** để ngăn chặn triệt để các lỗi nghiêm trọng thường gặp khi có nhiều giao dịch xảy ra cùng lúc:
+Hệ thống sử dụng **MongoDB Transactions + Atomic Updates** để ngăn chặn các lỗi nghiêm trọng thường gặp khi có nhiều giao dịch xảy ra cùng lúc:
 - **Ngăn chặn Overselling:** 50 Users cùng mua 1 tài khoản cùng lúc 👉 Chỉ 1 người thành công, 49 người bị từ chối với HTTP `409 Conflict`.
 - **Ngăn chặn Double-spending (Trừ âm tiền ví):** 1 User spam 150 request mua hàng liên tục vượt quá số dư ví 👉 Số lượng hóa đơn sinh ra khớp tuyệt đối với số dư, ví không bao giờ bị âm. 
 
@@ -107,7 +107,7 @@ Chỉ sử dụng các thông tin này với database demo.
 
 ## Chạy local
 
-Yêu cầu Node.js `20.9+`, npm và MongoDB.
+Yêu cầu Node.js `20.9+`, npm và MongoDB Replica Set hoặc Atlas.
 
 ### Backend
 
@@ -121,11 +121,14 @@ npm run dev
 Cập nhật `BE/.env`:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/shop-game-demo
+MONGODB_URI=mongodb://localhost:27017/shop-game-demo?replicaSet=rs0
 JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-another-random-secret
 FRONTEND_URL=http://localhost:3000
 ```
+
+MongoDB standalone không hỗ trợ transaction. Với MongoDB local, bật replica
+set `rs0` và chạy `rs.initiate()` một lần trước khi khởi động backend.
 
 ### Frontend
 

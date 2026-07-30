@@ -8,6 +8,13 @@ export const connectDatabase = async () => {
       socketTimeoutMS: 45000,
     });
 
+    const topology = await mongoose.connection.db.admin().command({ hello: 1 });
+    if (!topology.setName && topology.msg !== "isdbgrid") {
+      throw new Error(
+        "MongoDB transactions require a replica set or sharded cluster",
+      );
+    }
+
     console.log(
       `✅ MongoDB connected successfully to: ${mongoose.connection.host}`,
     );

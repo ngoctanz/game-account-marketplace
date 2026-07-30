@@ -42,7 +42,7 @@ const transactionSchema = new Schema(
     },
     referenceType: {
       type: String,
-      enum: ["order", "topup", "card_topup", null],
+      enum: ["order", "batch", "topup", "card_topup", null],
       default: null,
     },
   },

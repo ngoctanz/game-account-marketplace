@@ -40,6 +40,10 @@ export const responseUtils = {
     return this.error(res, message, 400, error);
   },
 
+  conflict(res, message = "Conflict") {
+    return this.error(res, message, 409);
+  },
+
   validationError(res, errors) {
     return res.status(400).json({
       success: false,

@@ -138,10 +138,12 @@ export const randomPurchase = async (req, res) => {
     if (error.message === "Package not found") {
       return res.status(404).json({ success: false, message: error.message });
     }
+    if (error.message === "No available accounts in this package") {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     if (
       error.message.includes("Invalid package mode") ||
-      error.message === "No available accounts in this package" ||
-      error.message === "Insufficient balance" ||
+      error.message.includes("Insufficient balance") ||
       error.message === "Package is not active" ||
       error.message === "User account is not active"
     ) {
@@ -172,10 +174,12 @@ export const clonePurchase = async (req, res) => {
     if (error.message === "Package not found") {
       return res.status(404).json({ success: false, message: error.message });
     }
+    if (error.message === "No available accounts in this package") {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     if (
       error.message.includes("Invalid package mode") ||
-      error.message === "No available accounts in this package" ||
-      error.message === "Insufficient balance" ||
+      error.message.includes("Insufficient balance") ||
       error.message === "Package is not active" ||
       error.message === "User account is not active"
     ) {
@@ -210,12 +214,14 @@ export const clonePurchaseBulk = async (req, res) => {
     if (error.message === "Package not found") {
       return res.status(404).json({ success: false, message: error.message });
     }
+    if (error.message.includes("Not enough accounts")) {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     if (
       error.message.includes("Invalid package mode") ||
       error.message.includes("Quantity must be") ||
-      error.message.includes("Not enough accounts") ||
       error.message.includes("Could only claim") ||
-      error.message === "Insufficient balance" ||
+      error.message.includes("Insufficient balance") ||
       error.message === "Package is not active" ||
       error.message === "User account is not active"
     ) {

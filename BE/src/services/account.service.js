@@ -7,6 +7,52 @@ import { AccountPackage } from "../models/account-package.model.js";
 import cloudinaryService from "./cloudinary.service.js";
 import mongoose from "mongoose";
 
+const transactionOptions = {
+  readPreference: "primary",
+  readConcern: { level: "snapshot" },
+  writeConcern: { w: "majority" },
+};
+
+const claimCloneCredentials = async (filter, quantity, session) => {
+  const account = await Account.findOneAndUpdate(
+    {
+      ...filter,
+      quantity: { $gte: quantity },
+      [`cloneAccounts.${quantity - 1}`]: { $exists: true },
+    },
+    [
+      {
+        $set: {
+          cloneAccounts: {
+            $slice: ["$cloneAccounts", quantity, { $size: "$cloneAccounts" }],
+          },
+          quantity: {
+            $subtract: [{ $size: "$cloneAccounts" }, quantity],
+          },
+          status: {
+            $cond: [
+              { $lte: [{ $size: "$cloneAccounts" }, quantity] },
+              "SOLD",
+              "$status",
+            ],
+          },
+        },
+      },
+    ],
+    { new: false, session }
+  ).select(
+    "+cloneAccounts.username +cloneAccounts.password +cloneAccounts.additionalInfo"
+  );
+
+  if (!account) return null;
+
+  return {
+    account,
+    credentials: account.cloneAccounts.slice(0, quantity),
+    remainingQuantity: account.cloneAccounts.length - quantity,
+  };
+};
+
 /**
  * Helper: Extract and delete Cloudinary images from account
  */
@@ -388,42 +434,42 @@ export const accountService = {
 
   /**
    * USER - Purchase account (LIST mode)
-   * Uses atomic operations with proper rollback for standalone MongoDB
+   * Inventory, balance, order and transaction log commit atomically.
    */
   async purchaseAccount(userId, accountId) {
-    // 1. Get account with credentials
-    const account = await Account.findById(accountId)
-      .select("+credentials.username +credentials.password +credentials.additionalInfo")
-      .populate("packageId");
+    return mongoose.connection.transaction(async (session) => {
+      const account = await Account.findById(accountId)
+        .session(session)
+        .select(
+          "+credentials.username +credentials.password +credentials.additionalInfo"
+        )
+        .populate("packageId");
 
-    if (!account) throw new Error("Account not found");
-    if (account.status !== "AVAILABLE") throw new Error("Account is not available");
+      if (!account) throw new Error("Account not found");
+      if (account.status !== "AVAILABLE") {
+        throw new Error("Account is not available");
+      }
 
-    // 2. Validate package is LIST mode
-    const pkg = account.packageId;
-    if (!pkg) throw new Error("Account package not found");
-    if (pkg.mode !== "LIST") {
-      throw new Error("This account can only be purchased through random draw");
-    }
+      const pkg = account.packageId;
+      if (!pkg) throw new Error("Account package not found");
+      if (pkg.mode !== "LIST") {
+        throw new Error("This account can only be purchased through random draw");
+      }
+      if (!account.credentials?.username) {
+        throw new Error("Account credentials not found");
+      }
 
-    const purchasePrice = account.price;
+      const purchasePrice = account.price;
+      const claimedAccount = await Account.findOneAndUpdate(
+        { _id: accountId, status: "AVAILABLE" },
+        { status: "SOLD" },
+        { new: true, session }
+      );
 
-    // 3. Atomically claim the account first (prevents double purchase)
-    const claimedAccount = await Account.findOneAndUpdate(
-      { _id: accountId, status: "AVAILABLE" },
-      { status: "SOLD" },
-      { new: true }
-    );
+      if (!claimedAccount) {
+        throw new Error("Account is no longer available");
+      }
 
-    if (!claimedAccount) {
-      throw new Error("Account is no longer available");
-    }
-
-    // Track what we've done for rollback
-    let balanceDeducted = false;
-
-    try {
-      // 4. Atomically deduct user balance with validation
       const updatedUser = await User.findOneAndUpdate(
         {
           _id: userId,
@@ -431,43 +477,37 @@ export const accountService = {
           status: "active"
         },
         { $inc: { balance: -purchasePrice } },
-        { new: true }
+        { new: true, session }
       );
 
       if (!updatedUser) {
         throw new Error("Insufficient balance or user not active");
       }
 
-      balanceDeducted = true;
       const balanceBefore = updatedUser.balance + purchasePrice;
       const balanceAfter = updatedUser.balance;
+      const [order] = await Order.create(
+        [{
+          userId,
+          accountId,
+          price: purchasePrice,
+          status: "completed",
+          accountCredentials: {
+            username: account.credentials.username,
+            password: account.credentials.password,
+            additionalInfo: account.credentials.additionalInfo,
+          },
+          accountSnapshot: {
+            code: account.code || null,
+            packageTitle: pkg.title || null,
+            image: account.coverImage || account.images?.[0] || null,
+          },
+        }],
+        { session }
+      );
 
-      // 5. Validate credentials exist
-      if (!account.credentials?.username) {
-        throw new Error("Account credentials not found");
-      }
-
-      // 6. Create Order with credentials snapshot
-      const order = await Order.create({
-        userId,
-        accountId,
-        price: purchasePrice,
-        status: "completed",
-        accountCredentials: {
-          username: account.credentials.username,
-          password: account.credentials.password,
-          additionalInfo: account.credentials.additionalInfo,
-        },
-        accountSnapshot: {
-          code: account.code || null,
-          packageTitle: pkg.title || null,
-          image: account.coverImage || account.images?.[0] || null,
-        },
-      });
-
-      // 7. Create Transaction record (non-critical)
-      try {
-        await Transaction.create({
+      await Transaction.create(
+        [{
           userId,
           type: "purchase",
           amount: purchasePrice,
@@ -476,28 +516,12 @@ export const accountService = {
           description: `Purchased account #${account._id}`,
           referenceId: order._id,
           referenceType: "order",
-        });
-      } catch (txError) {
-        console.error(`[Purchase] Failed to create transaction log:`, txError.message);
-      }
+        }],
+        { session }
+      );
 
       return { order, balanceAfter };
-
-    } catch (error) {
-      // Full rollback: revert account + refund balance if deducted
-      const rollbackPromises = [
-        Account.findByIdAndUpdate(accountId, { status: "AVAILABLE" }).catch(() => { }),
-      ];
-
-      if (balanceDeducted) {
-        rollbackPromises.push(
-          User.findByIdAndUpdate(userId, { $inc: { balance: purchasePrice } }).catch(() => { })
-        );
-      }
-
-      await Promise.all(rollbackPromises);
-      throw error;
-    }
+    }, transactionOptions);
   },
 
   /**
@@ -782,164 +806,114 @@ export const accountService = {
     }
     quantity = parsedQuantity;
 
-    // Get the clone account with credentials
-    const cloneAccount = await Account.findById(accountId)
-      .select("+cloneAccounts.username +cloneAccounts.password +cloneAccounts.additionalInfo")
-      .populate({
-        path: "packageId",
-        select: "title mode typeId image",
-        populate: { path: "typeId", select: "code name" }
-      });
+    return mongoose.connection.transaction(async (session) => {
+      const cloneAccount = await Account.findById(accountId)
+        .session(session)
+        .select(
+          "+cloneAccounts.username +cloneAccounts.password +cloneAccounts.additionalInfo"
+        )
+        .populate({
+          path: "packageId",
+          select: "title mode typeId image",
+          populate: { path: "typeId", select: "code name" }
+        });
 
-    if (!cloneAccount) {
-      throw new Error("Account not found");
-    }
+      if (!cloneAccount) throw new Error("Account not found");
+      if (!cloneAccount.isClone) throw new Error("This is not a clone account");
+      if (cloneAccount.status !== "AVAILABLE") {
+        throw new Error("This account is not available for purchase");
+      }
+      if (cloneAccount.cloneAccounts.length < quantity) {
+        throw new Error(
+          `Not enough sub-accounts available. Required: ${quantity}, Available: ${cloneAccount.cloneAccounts.length}`
+        );
+      }
 
-    if (!cloneAccount.isClone) {
-      throw new Error("This is not a clone account");
-    }
+      const unitPrice = cloneAccount.price;
+      if (unitPrice == null || unitPrice < 1) {
+        throw new Error("Invalid account price");
+      }
+      const totalPrice = unitPrice * quantity;
+      const claimed = await claimCloneCredentials(
+        { _id: accountId, status: "AVAILABLE", isClone: true },
+        quantity,
+        session
+      );
 
-    if (cloneAccount.status !== "AVAILABLE") {
-      throw new Error("This account is not available for purchase");
-    }
+      if (!claimed) throw new Error("Account is no longer available");
 
-    if (!cloneAccount.cloneAccounts?.length || cloneAccount.cloneAccounts.length < quantity) {
-      throw new Error(`Not enough sub-accounts available. Required: ${quantity}, Available: ${cloneAccount.quantity || 0}`);
-    }
+      const deductedUser = await User.findOneAndUpdate(
+        { _id: userId, balance: { $gte: totalPrice }, status: "active" },
+        { $inc: { balance: -totalPrice } },
+        { new: true, session }
+      );
 
-    const unitPrice = cloneAccount.price;
-    if (unitPrice == null || unitPrice < 1) {
-      throw new Error("Invalid account price");
-    }
-    const totalPrice = unitPrice * quantity;
+      if (!deductedUser) {
+        throw new Error("Insufficient balance or user not active");
+      }
 
-    // Validate user balance
-    const user = await User.findById(userId);
-    console.log("[PurchaseClone] User check:", { userId, found: !!user, status: user?.status });
-    if (!user) {
-      throw new Error("User not found");
-    }
-    if (user.status !== "active") {
-      throw new Error(`User account status is '${user.status}', must be 'active'`);
-    }
-    if (user.balance < totalPrice) {
-      throw new Error("Insufficient balance");
-    }
-
-    // Generate batchId for grouping orders
-    const batchId = new mongoose.Types.ObjectId().toString();
-
-    // Get the credentials to claim (first N from array)
-    const credentialsToClaim = cloneAccount.cloneAccounts.slice(0, quantity);
-
-    // Atomically remove credentials and decrease quantity
-    const updatedAccount = await Account.findOneAndUpdate(
-      {
-        _id: cloneAccount._id,
-        quantity: { $gte: quantity },
-        status: "AVAILABLE",
-      },
-      {
-        $set: {
-          cloneAccounts: cloneAccount.cloneAccounts.slice(quantity)
-        },
-        $inc: { quantity: -quantity }
-      },
-      { new: true }
-    );
-
-    if (!updatedAccount) {
-      throw new Error("Account is no longer available");
-    }
-
-    // Deduct user balance
-    const deductedUser = await User.findOneAndUpdate(
-      { _id: userId, balance: { $gte: totalPrice }, status: "active" },
-      { $inc: { balance: -totalPrice } },
-      { new: true }
-    );
-
-    if (!deductedUser) {
-      // Rollback: return credentials
-      await Account.findByIdAndUpdate(cloneAccount._id, {
-        $push: { cloneAccounts: { $each: credentialsToClaim, $position: 0 } },
-        $inc: { quantity: quantity }
-      });
-      throw new Error("Insufficient balance or user not active");
-    }
-
-    const balanceBefore = deductedUser.balance + totalPrice;
-    const balanceAfter = deductedUser.balance;
-
-    // Check if account should be marked as SOLD
-    if (updatedAccount.quantity <= 0 || !updatedAccount.cloneAccounts?.length) {
-      await Account.findByIdAndUpdate(cloneAccount._id, { status: "SOLD" });
-    }
-
-    // Create orders for each claimed credential
-    const orderDocs = credentialsToClaim.map(cred => ({
-      userId,
-      accountId: cloneAccount._id,
-      price: unitPrice,
-      status: "completed",
-      batchId,
-      accountCredentials: {
-        username: cred.username,
-        password: cred.password,
-        additionalInfo: cred.additionalInfo,
-      },
-      accountSnapshot: {
-        code: cloneAccount.code,
-        accountInfo: cloneAccount.accountInfo,
-        image: cloneAccount.coverImage || cloneAccount.packageId?.image,
-        packageTitle: cloneAccount.packageId?.title,
-        packageMode: "CLONE",
-      },
-    }));
-
-    const orders = await Order.insertMany(orderDocs);
-
-    // Create transaction log
-    try {
-      await Transaction.create({
+      const batchId = new mongoose.Types.ObjectId().toString();
+      const balanceBefore = deductedUser.balance + totalPrice;
+      const balanceAfter = deductedUser.balance;
+      const orderDocs = claimed.credentials.map((credential) => ({
         userId,
-        type: "purchase",
-        amount: totalPrice,
-        balanceBefore,
-        balanceAfter,
-        description: `Clone purchase: ${quantity}x "${cloneAccount.packageId?.title || cloneAccount.accountInfo}"`,
-        referenceId: batchId,
-        referenceType: "batch",
-      });
-    } catch (txError) {
-      console.error(`[PurchaseClone] Failed to create transaction log:`, txError.message);
-    }
+        accountId: cloneAccount._id,
+        price: unitPrice,
+        status: "completed",
+        batchId,
+        accountCredentials: {
+          username: credential.username,
+          password: credential.password,
+          additionalInfo: credential.additionalInfo,
+        },
+        accountSnapshot: {
+          code: cloneAccount.code,
+          image: cloneAccount.coverImage || cloneAccount.packageId?.image,
+          packageTitle: cloneAccount.packageId?.title,
+        },
+      }));
+      const orders = await Order.insertMany(orderDocs, { session, ordered: true });
 
-    return {
-      success: true,
-      batchId,
-      quantity,
-      totalPrice,
-      unitPrice,
-      orders: orders.map(o => ({
-        _id: o._id,
-        price: o.price,
-        status: o.status,
-        createdAt: o.createdAt,
-        accountCode: cloneAccount.code,
-      })),
-      account: {
-        _id: cloneAccount._id,
-        code: cloneAccount.code,
-        accountInfo: cloneAccount.accountInfo,
-        remainingQuantity: updatedAccount.quantity,
-      },
-      package: {
-        _id: cloneAccount.packageId?._id,
-        title: cloneAccount.packageId?.title,
-        mode: "CLONE",
-      },
-      balanceAfter,
-    };
+      await Transaction.create(
+        [{
+          userId,
+          type: "purchase",
+          amount: totalPrice,
+          balanceBefore,
+          balanceAfter,
+          description: `Clone purchase: ${quantity}x "${cloneAccount.packageId?.title || cloneAccount.accountInfo}"`,
+          referenceId: batchId,
+          referenceType: "batch",
+        }],
+        { session }
+      );
+
+      return {
+        success: true,
+        batchId,
+        quantity,
+        totalPrice,
+        unitPrice,
+        orders: orders.map(o => ({
+          _id: o._id,
+          price: o.price,
+          status: o.status,
+          createdAt: o.createdAt,
+          accountCode: cloneAccount.code,
+        })),
+        account: {
+          _id: cloneAccount._id,
+          code: cloneAccount.code,
+          accountInfo: cloneAccount.accountInfo,
+          remainingQuantity: claimed.remainingQuantity,
+        },
+        package: {
+          _id: cloneAccount.packageId?._id,
+          title: cloneAccount.packageId?.title,
+          mode: "CLONE",
+        },
+        balanceAfter,
+      };
+    }, transactionOptions);
   },
 };

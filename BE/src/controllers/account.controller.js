@@ -188,10 +188,13 @@ export const accountController = {
       if (error.message === "Account not found") {
         return responseUtils.notFound(res, error.message);
       }
-      if (error.message === "Account is not available") {
-        return responseUtils.badRequest(res, error.message);
+      if (
+        error.message === "Account is not available" ||
+        error.message === "Account is no longer available"
+      ) {
+        return responseUtils.conflict(res, error.message);
       }
-      if (error.message === "Insufficient balance") {
+      if (error.message.includes("Insufficient balance")) {
         return responseUtils.badRequest(res, error.message);
       }
       next(error);
@@ -372,4 +375,3 @@ export const accountController = {
     }
   },
 };
-

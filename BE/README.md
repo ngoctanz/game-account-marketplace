@@ -64,7 +64,7 @@ NODE_ENV=development
 APP_HOST=localhost
 APP_PORT=3001
 
-MONGODB_URI=mongodb://localhost:27017/game-account-shop
+MONGODB_URI=mongodb://localhost:27017/game-account-shop?replicaSet=rs0
 
 JWT_ACCESS_SECRET=your-access-secret
 JWT_REFRESH_SECRET=your-refresh-secret
@@ -73,6 +73,9 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 FRONTEND_URL=http://localhost:3000
 ```
+
+Purchase flow dùng MongoDB transactions, vì vậy database phải là Replica Set,
+sharded cluster hoặc MongoDB Atlas; standalone MongoDB không được hỗ trợ.
 
 ## API Endpoints
 
