@@ -60,8 +60,19 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
       - name: Deploy backend
         run: |
-          ssh -p 22 tanz@103.211.206.99 \
-            'cd ~/apps/game-account-marketplace &&
-             git pull --ff-only origin main &&
-             docker compose up -d --build --remove-orphans &&
-             curl --fail --retry 10 --retry-delay 3 --retry-connrefused http://127.0.0.1:3001/v1/health'
+          ssh -p 22 tanz@103.211.206.99 'bash -se' <<'SCRIPT'
+          cd ~/apps/game-account-marketplace
+          previous_commit=$(git rev-parse HEAD)
+          git pull --ff-only origin main
+
+          if docker compose up -d --build --remove-orphans &&
+             curl --fail --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:3001/v1/health; then
+            exit 0
+          fi
+
+          echo "Deployment failed, rolling back to $previous_commit"
+          git reset --hard "$previous_commit"
+          docker compose up -d --build --remove-orphans
+          curl --fail --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:3001/v1/health
+          exit 1
+          SCRIPT
